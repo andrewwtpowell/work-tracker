@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Deep Work Session Summary for {{ g.user['username'] }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="project">Project: {{project}}</label>
+    <label for="task_num">Project Session: {{task_num}}</label>
+    <label for="duration">Session Duration: {{duration}} minutes</label>
+    <label for="complexity">Session Complexity: (1 - least complex, 5 - most complex)</label>
+    <select name="complexity" id="complexity">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+    <label for="project_complete">Project Complete?</label>
+    <select name="project_complete" id="project_complete">
+      <option value="True">True</option>
+      <option value="False">False</option>
+    </select>
+    <label for="summary">Summary</label>
+    <input name="summary" id="summary" required>
+    <input type="submit" value="Submit Session">
+  </form>
+{% endblock %}

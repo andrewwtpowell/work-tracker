@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from flask import (redirect, url_for)
 
 # Application Factory
 def create_app(test_config=None):
@@ -40,5 +41,9 @@ def create_app(test_config=None):
     # Register the work blueprint
     from . import work
     app.register_blueprint(work.bp)
+
+    @app.route('/')
+    def app_home():
+        return redirect(url_for('dashboard.index'))
 
     return app

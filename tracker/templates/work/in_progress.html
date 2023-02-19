@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Deep Work Session In Progress for {{ g.user['username'] }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <body>
+    <h2> Session Timer </h2>
+    <div>
+        <iframe frameborder="0" noresize="noresize"
+        style='background: transparent; width: 100%; height:100%;' src="{{ url_for('content')}}"></iframe>
+    </div>
+  </body>
+  <form method="post">
+    <input type="submit" value="Finish Session">
+  </form>
+{% endblock %}

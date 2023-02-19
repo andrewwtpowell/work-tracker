@@ -7,14 +7,16 @@ CREATE TABLE user (
   password TEXT NOT NULL
 );
 
-CREATE TABLE post (
+CREATE TABLE entry (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   author_id INTEGER NOT NULL,
   start TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   finish TIMESTAMP NOT NULL,
+  duration INTEGER NOT NULL,
   project_title TEXT NOT NULL,
   complexity INTEGER NOT NULL,
   project_complete BOOLEAN NOT NULL,
   summary TEXT NOT NULL,
+  task_num INTEGER NOT NULL,
   FOREIGN KEY (author_id) REFERENCES user (id)
 );

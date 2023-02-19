@@ -12,6 +12,10 @@ bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 def user_dash(username):
     return render_template('dashboard/dash.html')
 
+@bp.route('/')
+def index():
+    return redirect(url_for('dashboard.user_dash', username=session.get('username')))
+
 # load_logged_in_user function
 # Runs before the the view functions to
 # check if a user id is stored in the session.
@@ -20,7 +24,7 @@ def user_dash(username):
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
-    g.username = session.get('username')
+    username = session.get('username')
 
     if user_id is None:
         g.user = None
