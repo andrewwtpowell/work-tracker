@@ -8,8 +8,7 @@
   <body>
     <h2> Session Timer </h2>
     <div>
-        <iframe frameborder="0" noresize="noresize"
-        style='background: transparent; width: 100%; height:100%;' src="{{ url_for('content')}}"></iframe>
+        <iframe frameborder="0" noresize="noresize" src="{{ url_for('work.content', starttime=start) }}"></iframe>
     </div>
   </body>
   <form method="post">

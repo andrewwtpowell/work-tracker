@@ -8,11 +8,16 @@ from tracker.db import get_db
 
 bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
-@bp.route('/<username>')
+@bp.route('/<username>', methods=('GET','POST'))
+@login_required
 def user_dash(username):
+    if request.method == 'POST':
+        return redirect(url_for('work.start', username=username))
+
     return render_template('dashboard/dash.html')
 
 @bp.route('/')
+@login_required
 def index():
     return redirect(url_for('dashboard.user_dash', username=session.get('username')))
 

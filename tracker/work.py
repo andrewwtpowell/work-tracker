@@ -1,5 +1,5 @@
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, url_for, session,
+    Blueprint, flash, g, redirect, render_template, request, url_for, session, Response
 )
 from werkzeug.exceptions import abort
 
@@ -7,56 +7,69 @@ from tracker.auth import login_required
 from tracker.db import get_db
 
 import time
-import datetime
+from datetime import datetime
 
 bp = Blueprint('work', __name__, url_prefix='/work_entry')
 
+# Preconditions: User logged in
+# Postconditions: html rendered, redirect to 'in_progress' page upon button press
+# Invariants:
 @bp.route('/<username>/start', methods=('GET','POST'))
+@login_required
 def start(username):
     if request.method == 'POST':
+        user_id = session.get('user_id')
         project = request.form['project']
-        start = datetime.datetime.now()
+        start = datetime.now().timestamp()
         db = get_db()
         error = None
 
         if not project:
             error = 'Project is required.'
 
+        try:
+            task = db.execute(
+                'SELECT max(task_num) FROM entry WHERE (author_id,project_title) = (?,?)', (user_id,project,)
+            ).fetchone()
+        except db.IntegrityError:
+            error = 'Database error.'
+
+        if not task['max(task_num)']:
+            task_num = 1
+        else:
+            task_num = task['max(task_num)'] + 1
+
+        if not task_num:
+            error = 'Task number error.'
+
         if not start:
             error = 'Start time error.'
 
-        error = f'{start}'
-
         if error is None:
-            return redirect(url_for('work.in_progress', username=username, project=project, start=start))
+            return redirect(url_for('work.in_progress', username=username, project=project, task_num=task_num, start=start))
 
         flash(error)
 
     return render_template('work/start.html')
 
-@bp.route('/<username>/<project>/in_progress', methods=('GET','POST'))
-def in_progress(username, project, start):
+@bp.route('/<username>/<project>/<task_num>/in_progress/<start>', methods=('GET','POST'))
+@login_required
+def in_progress(username, project, task_num, start):
 
     # Set session variable to notify embedded timer to start
     session['timer_active'] = True
 
+    flash(datetime.fromtimestamp(float(start)))
+
     if request.method == 'POST':
-        finish = datetime.datetime.now()
-        db = get_db()
+        user_id = session.get('user_id')
+        finish = datetime.now().timestamp()
         error = None
 
         # Set session variable to notify embedded timer to stop
         session['timer_active'] = False
 
-        # For duration, subtract start from finish and convert to minutes
-        t_delta = finish - start
-        duration = t_delta.total_minutes()
-
-        # For task_num, get the current max in the db for this project,
-        # then increment by 1
-        task_num = db.execute(
-            'SELECT max(task_num) FROM entry WHERE project_title = (?)', (project,)
-        ).fetchone() + 1
+        duration = (finish - start).total_minutes()
 
         if not finish:
             error = 'Finish time error.'
@@ -65,15 +78,17 @@ def in_progress(username, project, start):
             error = 'Duration error.'
 
         if error is None:
-            return redirect(url_for('work.complete',username=username,project=project,start=start,finish=finish,duration=duration,task_num=task_num))
+            return redirect(url_for('work.complete',username=username,project=project,task_num=task_num,start=start,finish=finish,duration=duration))
 
         flash(error)
 
     return render_template('work/in_progress.html')
 
-@bp.route('/<username>/<project>/complete', methods=('GET','POST'))
-def complete(username,project,start,finish,duration,task_num):
+@bp.route('/<username>/<project>/<task_num>/<start>/complete/<duration>/<finish>', methods=('GET','POST'))
+@login_required
+def complete(username,project,task_num, start, finish, duration):
     if request.method == 'POST':
+        user_id = session.get('user_id')
         complexity = request.form['complexity']
         project_complete = request.form['project_complete']
         summary = request.form['summary']
@@ -95,8 +110,17 @@ def complete(username,project,start,finish,duration,task_num):
         if error is None:
             try:
                 db.execute(
-                    "INSERT INTO entry (author_id,start,finish,duration,project_title,complexity,project_complete,summary,task_num) VALUES (?,?,?,?,?,?,?,?,?)",
-                    (user_id,start,finish,duration,project,complexity,project_complete,summary,task_num),
+                    "UPDATE entry SET (complexity,project_complete,summary) = (?,?,?) WHERE (author_id,project_title,task_num) = (?,?,?)",
+                    (complexity,project_complete,summary),
+                    (user_id,project,task_num),
+                )
+                db.commit()
+            except db.IntegrityError:
+                error = 'Database error.'
+            try:
+                db.execute(
+                    "INSERT INTO entry (author_id,project_title,task_num,start,finish,duration,complexity,project_complete,summary) VALUES (?,?,?,?,?,?,?,?,?)",
+                    (user_id,project,task_num,start,finish,duration,complexity,project_complete,summary),
                 )
                 db.commit()
             except db.IntegrityError:
@@ -108,15 +132,17 @@ def complete(username,project,start,finish,duration,task_num):
     return render_template('work/complete.html')
 
 # Content to be embedded into display
-@bp.route('/content')
-def content():
-    def timer():
-        i = 0
-        while session.get('timer_active') is True:
-            yield str(i)
-            time.sleep(60)
-            i = i+1
-        return Response(timer(10), mimetype='text/html')
+@bp.route('/timer/<starttime>')
+@login_required
+def timer(starttime):
+
+    start = fromtimestamp(float(starttime))
+
+    while session.get('timer_active'):
+        yield str(round(time.time() - start.time()))
+        time.sleep(1)
+
+    return Response(timer(), mimetype='text/html')
 
 # load_logged_in_user function
 # Runs before the the view functions to
