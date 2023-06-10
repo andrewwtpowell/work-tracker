@@ -7,7 +7,7 @@ from tracker.auth import login_required
 from tracker.db import get_db
 
 import time
-from datetime import datetime
+from datetime import datetime, date
 
 bp = Blueprint('work', __name__, url_prefix='/work_entry')
 
@@ -20,7 +20,7 @@ def start(username):
     if request.method == 'POST':
         user_id = session.get('user_id')
         project = request.form['project']
-        start = datetime.now().timestamp()
+        start = datetime.now().time()
         db = get_db()
         error = None
 
@@ -59,17 +59,19 @@ def in_progress(username, project, task_num, start):
     # Set session variable to notify embedded timer to start
     session['timer_active'] = True
 
-    flash(datetime.fromtimestamp(float(start)))
+    flash(start)
 
     if request.method == 'POST':
         user_id = session.get('user_id')
-        finish = datetime.now().timestamp()
+        finish = datetime.now().time()
         error = None
+        start_time = datetime.strptime(start, '%H:%M:%S.%f').time()
 
         # Set session variable to notify embedded timer to stop
         session['timer_active'] = False
 
-        duration = (finish - start).total_minutes()
+        time_difference = datetime.combine(date.today(), finish) - datetime.combine(date.today(), start_time)
+        duration = time_difference.total_seconds()
 
         if not finish:
             error = 'Finish time error.'
@@ -132,17 +134,21 @@ def complete(username,project,task_num, start, finish, duration):
     return render_template('work/complete.html')
 
 # Content to be embedded into display
-@bp.route('/timer/<starttime>')
+@bp.route('/content')
 @login_required
-def timer(starttime):
+def content():
+    def timer(t):
 
-    start = fromtimestamp(float(starttime))
+        start = datetime.now()
 
-    while session.get('timer_active'):
-        yield str(round(time.time() - start.time()))
-        time.sleep(1)
+        for i in range(t):
+            time.sleep(60)
+            time_difference = datetime.now() - start 
+            duration = time_difference.total_seconds()
 
-    return Response(timer(), mimetype='text/html')
+            yield str(duration)
+
+    return Response(timer(10), mimetype='text/html')
 
 # load_logged_in_user function
 # Runs before the the view functions to
