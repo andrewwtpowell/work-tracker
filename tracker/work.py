@@ -56,9 +56,6 @@ def start(username):
 @login_required
 def in_progress(username, project, task_num, start):
 
-    # Set session variable to notify embedded timer to start
-    session['timer_active'] = True
-
     flash(start)
 
     if request.method == 'POST':
@@ -67,11 +64,8 @@ def in_progress(username, project, task_num, start):
         error = None
         start_time = datetime.strptime(start, '%H:%M:%S.%f').time()
 
-        # Set session variable to notify embedded timer to stop
-        session['timer_active'] = False
-
         time_difference = datetime.combine(date.today(), finish) - datetime.combine(date.today(), start_time)
-        duration = time_difference.total_seconds()
+        duration = round(time_difference.total_seconds()/60, 2)
 
         if not finish:
             error = 'Finish time error.'
@@ -89,6 +83,7 @@ def in_progress(username, project, task_num, start):
 @bp.route('/<username>/<project>/<task_num>/<start>/complete/<duration>/<finish>', methods=('GET','POST'))
 @login_required
 def complete(username,project,task_num, start, finish, duration):
+
     if request.method == 'POST':
         user_id = session.get('user_id')
         complexity = request.form['complexity']
@@ -131,24 +126,8 @@ def complete(username,project,task_num, start, finish, duration):
 
         flash(error)
 
-    return render_template('work/complete.html')
+    return render_template('work/complete.html', project=project, task_num=task_num, duration=duration)
 
-# Content to be embedded into display
-@bp.route('/content')
-@login_required
-def content():
-    def timer(t):
-
-        start = datetime.now()
-
-        for i in range(t):
-            time.sleep(60)
-            time_difference = datetime.now() - start 
-            duration = time_difference.total_seconds()
-
-            yield str(duration)
-
-    return Response(timer(10), mimetype='text/html')
 
 # load_logged_in_user function
 # Runs before the the view functions to
@@ -159,7 +138,6 @@ def content():
 def load_logged_in_user():
     user_id = session.get('user_id')
     username = session.get('username')
-    session['timer_active'] = False
 
     if user_id is None:
         g.user = None
