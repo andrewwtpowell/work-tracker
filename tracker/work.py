@@ -105,6 +105,7 @@ def complete(username,project,task_num, start, finish, duration):
             error = 'Summary is required.'
 
         if error is None:
+            """
             try:
                 db.execute(
                     "UPDATE entry SET (complexity,project_complete,summary) = (?,?,?) WHERE (author_id,project_title,task_num) = (?,?,?)",
@@ -114,6 +115,7 @@ def complete(username,project,task_num, start, finish, duration):
                 db.commit()
             except db.IntegrityError:
                 error = 'Database error.'
+            """
             try:
                 db.execute(
                     "INSERT INTO entry (author_id,project_title,task_num,start,finish,duration,complexity,project_complete,summary) VALUES (?,?,?,?,?,?,?,?,?)",
